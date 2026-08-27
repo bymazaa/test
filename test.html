@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OCTABOOT — The Anatomy of a Suit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-top: #0b0b0b;
+    --bg-bottom: #050505;
+    --ink: #f3efe6;
+    --champagne: #cbb083;
+    --bronze: #8a6a3f;
+    --muted: #8a867d;
+    --hairline: rgba(203,176,131,0.18);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    height:100%;
+    background: radial-gradient(120% 100% at 50% 0%, var(--bg-top), var(--bg-bottom) 70%);
+    color: var(--ink);
+    font-family:'Inter', sans-serif;
+    overflow-x:hidden;
+  }
+  #stage{
+    position:relative;
+    height:340vh;
+  }
+  #canvas-holder{
+    position:sticky;
+    top:0;
+    width:100%;
+    height:100vh;
+    z-index:0;
+    opacity:0;
+    transition: opacity 2s ease;
+  }
+  #canvas-holder.ready{ opacity:1; }
+  canvas{ display:block; }
+
+  .vignette{
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:
+      radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.55), transparent 55%),
+      radial-gradient(ellipse at 50% 0%, rgba(0,0,0,0.35), transparent 45%);
+    z-index:1;
+  }
+
+  header{
+    position:fixed;
+    top:0; left:0; right:0;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 1.8rem 3.2rem;
+    z-index:10;
+    mix-blend-mode: difference;
+  }
+  .logo{
+    font-family:'Playfair Display', serif;
+    font-size:1.05rem;
+    letter-spacing:0.32em;
+    font-weight:500;
+    color: var(--ink);
+  }
+  nav{ display:flex; gap:2.4rem; align-items:center; }
+  nav a{
+    color: var(--ink);
+    text-decoration:none;
+    font-size:0.7rem;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    font-weight:400;
+    opacity:0.85;
+    position:relative;
+    padding-bottom:2px;
+  }
+  nav a::after{
+    content:'';
+    position:absolute;
+    left:0; bottom:0;
+    width:0%;
+    height:1px;
+    background: var(--champagne);
+    transition: width 0.35s ease;
+  }
+  nav a:hover::after{ width:100%; }
+  .fitting{
+    border:1px solid var(--hairline);
+    padding:0.5rem 1.1rem;
+    border-radius:2px;
+  }
+
+  .hero-copy{
+    position:absolute;
+    top:0; left:0; right:0;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    z-index:2;
+    pointer-events:none;
+    opacity:0;
+    transform: translateY(24px);
+    animation: rise 1.6s 0.4s ease forwards;
+  }
+  @keyframes rise{
+    to{ opacity:1; transform: translateY(0); }
+  }
+  .eyebrow{
+    font-family:'Cormorant Garamond', serif;
+    font-style:italic;
+    font-size:0.95rem;
+    letter-spacing:0.35em;
+    text-transform:uppercase;
+    color: var(--champagne);
+    margin-bottom:1.4rem;
+  }
+  h1{
+    font-family:'Playfair Display', serif;
+    font-weight:500;
+    font-size: clamp(2.6rem, 6.4vw, 5.6rem);
+    line-height:1.05;
+    letter-spacing:0.01em;
+    background: linear-gradient(100deg, #d8c093 0%, #f3efe6 28%, #ffffff 45%, #d8c093 62%, #8a6a3f 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  .sub{
+    margin-top:1.6rem;
+    font-family:'Cormorant Garamond', serif;
+    font-size:1.15rem;
+    color: var(--muted);
+    max-width:480px;
+    letter-spacing:0.02em;
+  }
+
+  .scroll-indicator{
+    position:absolute;
+    bottom:3rem;
+    left:50%;
+    transform:translateX(-50%);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:0.7rem;
+    z-index:2;
+    opacity:0;
+    animation: fadein 1.2s 1.6s ease forwards;
+  }
+  @keyframes fadein{ to{ opacity:0.75; } }
+  .scroll-indicator span{
+    font-size:0.65rem;
+    letter-spacing:0.28em;
+    text-transform:uppercase;
+    color: var(--muted);
+  }
+  .line{
+    width:1px;
+    height:34px;
+    background: linear-gradient(var(--champagne), transparent);
+    animation: pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{ transform:scaleY(0.6); opacity:0.4; }
+    50%{ transform:scaleY(1); opacity:1; }
+  }
+
+  .stage-label{
+    position:absolute;
+    top:50%;
+    transform: translateY(-50%);
+    z-index:2;
+    font-family:'Cormorant Garamond', serif;
+    font-style:italic;
+    color: var(--champagne);
+    font-size:1.3rem;
+    letter-spacing:0.12em;
+    opacity:0;
+    transition: opacity 0.6s ease;
+    pointer-events:none;
+  }
+  .stage-label.left{ left:5%; }
+  .stage-label.right{ right:5%; text-align:right; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">OCTABOOT</div>
+  <nav>
+    <a href="#">Archive</a>
+    <a href="#">Collection</a>
+    <a href="#" class="fitting">Book a Fitting</a>
+  </nav>
+</header>
+
+<div id="stage">
+  <div id="canvas-holder">
+    <div class="vignette"></div>
+
+    <div class="hero-copy">
+      <div class="eyebrow">Octaboot · Bespoke Suits · Men/01</div>
+      <h1>The Anatomy of a Suit</h1>
+      <p class="sub">Every stitch considered. Every layer purposeful. Scroll to take it apart.</p>
+    </div>
+
+    <div class="scroll-indicator">
+      <span>Scroll</span>
+      <div class="line"></div>
+    </div>
+
+    <div class="stage-label left" id="label-shirt">Shirt<br>— The Foundation</div>
+    <div class="stage-label right" id="label-vest">Vest<br>— The Structure</div>
+    <div class="stage-label left" id="label-jacket">Jacket<br>— The Statement</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+  const holder = document.getElementById('canvas-holder');
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x050505, 0.055);
+
+  const camera = new THREE.PerspectiveCamera(42, window.innerWidth/window.innerHeight, 0.1, 100);
+  camera.position.set(0, 0.4, 9);
+
+  const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  holder.insertBefore(renderer.domElement, holder.firstChild);
+
+  const keyLight = new THREE.DirectionalLight(0xffe8c2, 1.1);
+  keyLight.position.set(2, 4, 5);
+  scene.add(keyLight);
+
+  const rimGoldL = new THREE.PointLight(0xc9924a, 6, 20);
+  rimGoldL.position.set(-4, 2, -3);
+  scene.add(rimGoldL);
+
+  const rimGoldR = new THREE.PointLight(0xd8a35c, 4, 20);
+  rimGoldR.position.set(4, 1.5, -2);
+  scene.add(rimGoldR);
+
+  const fill = new THREE.AmbientLight(0x2a2a30, 0.7);
+  scene.add(fill);
+
+  function darkFabric(color, rough=0.55, metal=0.15){
+    return new THREE.MeshStandardMaterial({ color, roughness:rough, metalness:metal });
+  }
+
+  const jacketMat = darkFabric(0x0e0e10, 0.35, 0.35);
+  const vestMat   = darkFabric(0x1a1815, 0.5, 0.2);
+  const shirtMat  = new THREE.MeshStandardMaterial({ color:0xe9e3d4, roughness:0.7, metalness:0.02 });
+  const trimMat   = new THREE.MeshStandardMaterial({ color:0xc9a869, roughness:0.3, metalness:0.7 });
+
+  function torsoLathe(points, material, segments=48){
+    const pts = points.map(p => new THREE.Vector2(p[0], p[1]));
+    const geo = new THREE.LatheGeometry(pts, segments);
+    return new THREE.Mesh(geo, material);
+  }
+
+  const shirtGroup = new THREE.Group();
+  const shirtBody = torsoLathe([
+    [0.0,-2.0],[0.62,-1.9],[0.7,-0.8],[0.66,0.2],[0.58,1.0],[0.42,1.5],[0.3,1.7],[0.0,1.78]
+  ], shirtMat);
+  shirtGroup.add(shirtBody);
+  const collarL = new THREE.Mesh(new THREE.BoxGeometry(0.55,0.5,0.06), shirtMat);
+  collarL.position.set(-0.28,1.75,0.6); collarL.rotation.z = 0.5; collarL.rotation.x=-0.15;
+  const collarR = collarL.clone(); collarR.position.x = 0.28; collarR.rotation.z = -0.5;
+  shirtGroup.add(collarL, collarR);
+  scene.add(shirtGroup);
+
+  const vestGroup = new THREE.Group();
+  const vestBody = torsoLathe([
+    [0.0,-1.5],[0.66,-1.4],[0.74,-0.6],[0.7,0.3],[0.6,0.95],[0.45,1.3],[0.0,1.4]
+  ], vestMat);
+  vestGroup.add(vestBody);
+  for(let i=0;i<4;i++){
+    const btn = new THREE.Mesh(new THREE.SphereGeometry(0.035,12,12), trimMat);
+    btn.position.set(0, 1.0 - i*0.45, 0.72);
+    vestGroup.add(btn);
+  }
+  scene.add(vestGroup);
+
+  const jacketGroup = new THREE.Group();
+  const jacketBody = torsoLathe([
+    [0.0,-2.3],[0.85,-2.15],[0.98,-1.0],[0.92,0.1],[0.8,0.9],[0.62,1.55],[0.5,1.85],[0.0,1.95]
+  ], jacketMat);
+  jacketGroup.add(jacketBody);
+
+  function lapel(x, rotZ){
+    const shape = new THREE.Shape();
+    shape.moveTo(0,0);
+    shape.lineTo(0.5,-0.2);
+    shape.lineTo(0.35,-1.3);
+    shape.lineTo(0,-1.0);
+    shape.closePath();
+    const geo = new THREE.ExtrudeGeometry(shape, { depth:0.04, bevelEnabled:false });
+    const mesh = new THREE.Mesh(geo, jacketMat);
+    mesh.position.set(x, 1.3, 0.85);
+    mesh.rotation.z = rotZ;
+    mesh.rotation.y = x > 0 ? -0.35 : 0.35;
+    return mesh;
+  }
+  jacketGroup.add(lapel(0.08, -0.15), lapel(-0.08, 0.15));
+
+  function sleeve(x){
+    const geo = new THREE.CylinderGeometry(0.26,0.2,2.4,16);
+    const mesh = new THREE.Mesh(geo, jacketMat);
+    mesh.position.set(x, -0.1, 0);
+    mesh.rotation.z = x > 0 ? -0.28 : 0.28;
+    return mesh;
+  }
+  jacketGroup.add(sleeve(1.15), sleeve(-1.15));
+
+  scene.add(jacketGroup);
+
+  const floorGeo = new THREE.PlaneGeometry(40,40);
+  const floorMat = new THREE.MeshStandardMaterial({ color:0x030303, roughness:0.15, metalness:0.6 });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI/2;
+  floor.position.y = -2.35;
+  scene.add(floor);
+
+  const reflGeo = new THREE.PlaneGeometry(40,10);
+  const reflMat = new THREE.MeshBasicMaterial({ color:0x1a1610, transparent:true, opacity:0.18 });
+  const fogPlane = new THREE.Mesh(reflGeo, reflMat);
+  fogPlane.position.set(0,-2.3,-2);
+  scene.add(fogPlane);
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  const stage = document.getElementById('stage');
+  function getProgress(){
+    const rect = stage.getBoundingClientRect();
+    const total = rect.height - window.innerHeight;
+    const scrolled = -rect.top;
+    return Math.min(Math.max(scrolled/total, 0), 1);
+  }
+
+  const labelJacket = document.getElementById('label-jacket');
+  const labelVest = document.getElementById('label-vest');
+  const labelShirt = document.getElementById('label-shirt');
+  const heroCopy = document.querySelector('.hero-copy');
+  const scrollInd = document.querySelector('.scroll-indicator');
+
+  function stageT(p, start, end){
+    return Math.min(Math.max((p-start)/(end-start), 0), 1);
+  }
+
+  let startTime = performance.now();
+
+  function updateFromScroll(){
+    const p = getProgress();
+
+    heroCopy.style.opacity = Math.max(1 - p*4, 0);
+    scrollInd.style.opacity = Math.max(0.75 - p*6, 0);
+
+    const jT = stageT(p, 0.05, 0.35);
+    jacketGroup.position.y = jT * 2.4;
+    jacketGroup.position.x = jT * 2.6;
+    jacketGroup.rotation.z = jT * 0.5;
+    jacketGroup.rotation.y = jT * 0.6;
+    labelJacket.style.opacity = (jT > 0.15 && jT < 0.95) ? 1 : 0;
+
+    const vT = stageT(p, 0.38, 0.68);
+    vestGroup.position.y = vT * 2.0;
+    vestGroup.position.x = -vT * 2.2;
+    vestGroup.rotation.z = -vT * 0.45;
+    labelVest.style.opacity = (vT > 0.15 && vT < 0.95) ? 1 : 0;
+
+    const sT = stageT(p, 0.7, 1.0);
+    shirtGroup.rotation.y = sT * Math.PI * 0.6;
+    camera.position.z = 9 - sT*3;
+    camera.position.y = 0.4 + sT*0.6;
+    labelShirt.style.opacity = (sT > 0.1) ? 1 : 0;
+
+    camera.lookAt(0,0,0);
+  }
+
+  function animate(){
+    requestAnimationFrame(animate);
+    const t = (performance.now() - startTime) / 1000;
+    const floatY = Math.sin(t*0.6) * 0.05;
+    shirtGroup.position.y = 0 + floatY*0.4;
+
+    updateFromScroll();
+    rimGoldL.intensity = 5.5 + Math.sin(t*0.8)*0.6;
+
+    renderer.render(scene, camera);
+  }
+
+  window.addEventListener('scroll', updateFromScroll);
+  animate();
+
+  requestAnimationFrame(() => {
+    holder.classList.add('ready');
+  });
+</script>
+</body>
+</html>
